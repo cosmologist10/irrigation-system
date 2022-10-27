@@ -1,0 +1,20 @@
+[package]
+authors = ["Shweta <sumanshweta44@gmail.com>"]
+name = "irrigation"
+version = "0.1.0"
+edition = "2021"
+license = "Unlicense OR MIT"
+
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+
+[badges]
+travis-ci = { repository = "cosmologist10/irrigation-system" }
+
+
+[dependencies]
+rocket = { version = "0.5.0-rc.1", default-features = false, features = ["json"] }
+rocket_cors = { version = "0.5.2", default-features = false }
+serde = { version = "1.0.133", features = ["derive"] }
+serde_json = "1.0.75"
