@@ -8,9 +8,20 @@ pub struct Measurements<'a> {
     pub timestamp: DateTime<Utc>,
 }
 
+pub struct AllMeasurements<'a>{
+    pub sensorName: String,
+}
+
+pub struct QueryMeasurement<'a> {
+    pub sensorName: String,
+    pub start: DateTime<Utc>,
+    pub end: DateTime<Utc>,
+}
+
 
 impl Measurement {
-    pub fn getDailyMeasurements(&self, sensor_name: String) -> Measurements {
+
+    pub fn getAllMeasurements(&self, queryFilter: AllMeasurements) -> Measurements {
         DailyMeasurements {
             sensorName: '',
             capacity: 10,
@@ -18,7 +29,7 @@ impl Measurement {
         }
     }
 
-    pub fn getLastMonthMeasurements(&self, sensor_name: String) -> Measurements {
+    pub fn getDailyMeasurements(&self, queryFilter: QueryMeasurement) -> Measurements {
         DailyMeasurements {
             sensorName: '',
             capacity: 10,
@@ -26,7 +37,7 @@ impl Measurement {
         }
     }
 
-    pub fn getLastWeekMeasurements(&self, sensor_name: String) -> Measurements {
+    pub fn getHourlyMeasurements(&self, queryFilter: QueryMeasurement) -> Measurements {
         DailyMeasurements {
             sensorName: '',
             capacity: 10,
@@ -34,7 +45,7 @@ impl Measurement {
         }
     }
 
-    pub fn getLastHourMeasurements(&self, sensor_name: String) -> Measurements {
+    pub fn getMinutelyMeasurements(&self, queryFilter: QueryMeasurement) -> Measurements {
         DailyMeasurements {
             sensorName: '',
             capacity: 10,
@@ -42,7 +53,7 @@ impl Measurement {
         }
     }
 
-    pub fn getLastMinuteMeasurements(&self, sensor_name: String) -> DailyMeasurements {
+    pub fn getSecondlyMeasurements(&self, queryFilter: QueryMeasurement) -> Measurements {
         DailyMeasurements {
             sensorName: '',
             capacity: 10,

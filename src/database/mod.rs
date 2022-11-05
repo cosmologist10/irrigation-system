@@ -1,67 +1,25 @@
-// pub mod articles;
-// pub mod comments;
-// pub mod profiles;
-// pub mod users;
+pub mod articles;
+pub mod comments;
+pub mod profiles;
+pub mod users;
 
-// #[database("diesel_postgres_pool")]
-// pub struct Db(diesel::PgConnection);
+// follow this tutorial https://blog.logrocket.com/interacting-databases-rust-diesel-vs-sqlx/
 
-// use diesel::pg::Pg;
-// use diesel::prelude::*;
-// use diesel::query_builder::*;
-// use diesel::query_dsl::methods::LoadQuery;
-// use diesel::sql_types::BigInt;
+#[macro_use]
+extern crate diesel;
+extern crate dotenv;
 
-// pub trait OffsetLimit: Sized {
-//     fn offset_and_limit(self, offset: i64, limit: i64) -> OffsetLimited<Self>;
-// }
+pub mod models;
+pub mod schema;
 
-// impl<T> OffsetLimit for T {
-//     fn offset_and_limit(self, offset: i64, limit: i64) -> OffsetLimited<Self> {
-//         OffsetLimited {
-//             query: self,
-//             limit,
-//             offset,
-//         }
-//     }
-// }
+use diesel::prelude::*;
+use dotenv::dotenv;
+use std::env;
 
-// #[derive(Debug, Clone, Copy, QueryId)]
-// pub struct OffsetLimited<T> {
-//     query: T,
-//     offset: i64,
-//     limit: i64,
-// }
+pub fn create_connection() -> MysqlConnection {
+    dotenv().ok();
 
-// impl<T> OffsetLimited<T> {
-//     pub fn load_and_count<U>(self, conn: &PgConnection) -> QueryResult<(Vec<U>, i64)>
-//     where
-//         Self: LoadQuery<PgConnection, (U, i64)>,
-//     {
-//         let results = self.load::<(U, i64)>(conn)?;
-//         let total = results.get(0).map(|x| x.1).unwrap_or(0);
-//         let records = results.into_iter().map(|x| x.0).collect();
-//         Ok((records, total))
-//     }
-// }
-
-// impl<T: Query> Query for OffsetLimited<T> {
-//     type SqlType = (T::SqlType, BigInt);
-// }
-
-// impl<T> RunQueryDsl<PgConnection> for OffsetLimited<T> {}
-
-// impl<T> QueryFragment<Pg> for OffsetLimited<T>
-// where
-//     T: QueryFragment<Pg>,
-// {
-//     fn walk_ast(&self, mut out: AstPass<Pg>) -> QueryResult<()> {
-//         out.push_sql("SELECT *, COUNT(*) OVER () FROM (");
-//         self.query.walk_ast(out.reborrow())?;
-//         out.push_sql(") t LIMIT ");
-//         out.push_bind_param::<BigInt, _>(&self.limit)?;
-//         out.push_sql(" OFFSET ");
-//         out.push_bind_param::<BigInt, _>(&self.offset)?;
-//         Ok(())
-//     }
-// }
+    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    MysqlConnection::establish(&database_url)
+        .unwrap_or_else(|_| panic!("Error connecting to {}", database_url))
+}
