@@ -1,4 +1,1 @@
-use measurement;
-use sensor;
-use preference;
-use irrigation;
+pub mod irrigations;
