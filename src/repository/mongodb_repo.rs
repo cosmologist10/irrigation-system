@@ -38,7 +38,6 @@ impl MongoRepo {
     }
 
     pub fn get_last_month_measurements(&self, new_user: User) -> Result<InsertOneResult, Error> {
-        
         let measurements = irrigation
             .find_one(Some(doc! { 
                 "sensor_name":  sensor_name,
