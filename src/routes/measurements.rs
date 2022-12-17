@@ -1,7 +1,56 @@
+use serde::Deserialize;
+use rocket::serde::json::{json, Json, Value};
+use rocket::{http::Status, State};
+
+use mongodb::results::InsertOneResult;
+
+
+use crate::models::measurements::{Measurements, self};
+use crate::repository::mongodb::MongoRepo;
+
+// use irrigation::models::measurements;
+
+#[get("/measurement/<sensor_name>")]
+pub async fn get_all_measurements(
+    db: &State<MongoRepo>,
+    sensor_name: String
+) -> Result<Json<Measurements>, Status> {
+    let sensor = sensor_name;
+    if sensor.is_empty() {
+        return Err(Status::BadRequest);
+    };
+    let response = db.get_data(&sensor);
+    match response {
+        Ok(measurements) => Ok(Json(measurements)),
+        Err(_) => Err(Status::InternalServerError),
+    }
+}
+
+#[post("/measurement", data = "<new_measurement>")]
+pub fn create_user(
+    db: &State<MongoRepo>,
+    new_measurement: Json<Measurements>,
+) -> Result<Json<InsertOneResult>, Status> {
+    let new_doc = Measurements {
+        sensor_name: new_measurement.sensor_name.to_owned(),
+        capacity: new_measurement.capacity.to_owned(),
+        timestamp: new_measurement.timestamp.to_owned(),
+    };
+    let measurement_detail = db.insert_data(new_doc);
+    match measurement_detail {
+        Ok(user) => Ok(Json(user)),
+        Err(_) => Err(Status::InternalServerError),
+    }
+}
+
 // #[get("/<sensorName>")]
 // fn getIrrigations() -> &'static str {
 //     "Hello, world!"
 // }
+
+// use crate::models::measurements::Measurements;
+
+
 
 // #[derive(Deserialize)]
 // struct MeasurementQueryFilter {

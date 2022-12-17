@@ -7,6 +7,11 @@ use rocket_cors::{Cors, CorsOptions};
 
 
 mod routes;
+mod repository;
+mod models;
+
+use repository::mongodb::MongoRepo;
+
 
 
 #[catch(404)]
@@ -25,13 +30,15 @@ fn cors_fairing() -> Cors {
 
 #[launch]
 pub fn rocket() -> _ {
+    let db = MongoRepo::init();
     // dotenv().ok();
     // rocket::custom(config::from_env());
     rocket::build()
+        .manage(db)
         .mount(
             "/app",
             routes![
-                // routes::irrigations::get_all_measurements,
+                routes::measurements::get_all_measurements,
                 // routes::irrigations::get_last_month_measurements,
                 // routes::irrigations::get_last_week_measurements,
                 // routes::irrigations::get_last_day_measurements,

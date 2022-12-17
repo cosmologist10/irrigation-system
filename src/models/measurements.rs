@@ -1,14 +1,13 @@
+use chrono::Utc;
 use mongodb::bson::oid::ObjectId;
 use serde::{Serialize, Deserialize};
 
 #[derive(Debug, Serialize, Deserialize)]
-struct Measurements {
-    #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
-    id: Option<ObjectId>,
-    sensor_name: String,
-    capacity: i32,
+pub struct Measurements {
+    pub sensor_name: String,
+    pub capacity: i32,
     #[serde(with = "bson::serde_helpers::chrono_datetime_as_bson_datetime")]
-    timestamp: chrono::DateTime<Utc>,
+    pub timestamp: chrono::DateTime<Utc>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
