@@ -39,7 +39,7 @@ pub fn rocket() -> _ {
             "/app",
             routes![
                 routes::measurements::get_all_measurements,
-                routes::measurements::update_measurement,
+                routes::measurements::set_measurement,
                 // routes::irrigations::get_last_week_measurements,
                 // routes::irrigations::get_last_day_measurements,
                 // routes::irrigations::get_last_hour_measurements,

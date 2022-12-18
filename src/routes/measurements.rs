@@ -6,7 +6,7 @@ use rocket::{http::Status, State};
 use chrono::{DateTime, Utc, Duration};
 
 
-use mongodb::results::InsertOneResult;
+use mongodb::results::{InsertOneResult, UpdateResult};
 
 
 use crate::models::measurements::{Measurements, RequestMeasurements};
@@ -30,11 +30,12 @@ pub async fn get_all_measurements(
     }
 }
 
+// TODO: Add rate
 #[post("/measurement", data = "<new_measurement>")]
-pub fn update_measurement(
+pub fn set_measurement(
     db: &State<MongoRepo>,
     new_measurement: Json<RequestMeasurements>,
-) -> Result<Json<InsertOneResult>, Status> {
+) -> Result<Json<UpdateResult>, Status> {
     let now: DateTime<Utc> = Utc::now();
 
     let new_doc = Measurements {
@@ -42,29 +43,12 @@ pub fn update_measurement(
         capacity: new_measurement.capacity.to_owned(),
         timestamp: now,
     };
-    println!("new doc ====== {:?} ", new_doc);
-    let measurement_detail = db.insert_data(new_doc);
+    let measurement_detail = db.set_measurement(new_doc);
     match measurement_detail {
         Ok(measurement) => Ok(Json(measurement)),
         Err(_) => Err(Status::InternalServerError),
     }
 }
-
-// #[get("/<sensorName>")]
-// fn getIrrigations() -> &'static str {
-//     "Hello, world!"
-// }
-
-// use crate::models::measurements::Measurements;
-
-
-
-// #[derive(Deserialize)]
-// struct MeasurementQueryFilter {
-//     sensor_name: &'a str,
-//     start: DateTime<Utc>,
-//     end: DateTime<Utc>,
-// }
 
 // #[get("/all/<sensor_name>")]
 // fn get_all_measurements(sensor_name: &str) -> Value {
