@@ -45,8 +45,9 @@ pub fn rocket() -> _ {
                 routes::measurements::get_last_week_measurements,
                 routes::measurements::get_last_hour_measurements,
                 routes::measurements::get_last_minute_measurements,
+                routes::measurements::get_irrigations,
+
                 // routes::irrigations::set_measurement,
-                // routes::irrigations::get_irrigations,
                 // routes::irrigations::get_sensor_names,
                 // routes::irrigations::irrigation,
                 // routes::irrigations::get_preference,

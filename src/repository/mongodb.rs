@@ -225,33 +225,33 @@ impl MongoRepo {
         Ok(sensor_detail.unwrap())
     }
 
+    // TODO: Implement find here
+    pub fn get_irrigations(&self, sensor: &String) -> Result<Measurements, Error> {
+        let filter = doc! {
+            "sensor_name": sensor, 
+        };
+        let irrigation_detail = self
+            .irrigation
+            .find_one(filter, None)
+            .ok()
+            .expect("Error getting irrigations detail");
+        println!("response:{:?}", irrigation_detail);
+        Ok(irrigation_detail.unwrap())
+    }
 
-    // pub fn get_irrigation(&self, sensor: &String) -> Result<Measurements, Error> {
-    //     let filter = doc! {
-    //         "sensor_name": sensor, 
-    //     };
-    //     let irrigation_detail = self
-    //         .irrigation
-    //         .find(filter, None)
-    //         .ok()
-    //         .expect("Error getting sensor's detail");
-    //     println!("response:{:?}", irrigation_detail);
-    //     Ok(irrigation_detail.unwrap())
-    // }
 
-
+    // // TODO: Implement find here
     // pub fn get_sensor_names(&self) -> Result<Preference, Error>{
     //     let preference = self
     //         .preferences
-    //         .find({})
+    //         .find_one({}, None)
     //         .ok()
     //         .expect("Error updating daily measurements");
     //     Ok(preference.unwrap())
     // }
 
-    // // pass sensor name
-    // pub fn irrigation(&self, sensor: &String) -> any{
 
+    // pub fn irrigation(&self, sensor: &String) -> any{
     //     let preferences = self.get_preference(sensor);
     //     let sensor_result = self.irrigate(irrigation_time_in_seconds, sensor);
     //     if(sensor_result){
