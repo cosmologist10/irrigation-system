@@ -1,11 +1,15 @@
+
 use serde::Deserialize;
 use rocket::serde::json::{json, Json, Value};
 use rocket::{http::Status, State};
 
+use chrono::{DateTime, Utc, Duration};
+
+
 use mongodb::results::InsertOneResult;
 
 
-use crate::models::measurements::{Measurements, self};
+use crate::models::measurements::{Measurements, RequestMeasurements};
 use crate::repository::mongodb::MongoRepo;
 
 // use irrigation::models::measurements;
@@ -27,18 +31,21 @@ pub async fn get_all_measurements(
 }
 
 #[post("/measurement", data = "<new_measurement>")]
-pub fn create_user(
+pub fn update_measurement(
     db: &State<MongoRepo>,
-    new_measurement: Json<Measurements>,
+    new_measurement: Json<RequestMeasurements>,
 ) -> Result<Json<InsertOneResult>, Status> {
+    let now: DateTime<Utc> = Utc::now();
+
     let new_doc = Measurements {
         sensor_name: new_measurement.sensor_name.to_owned(),
         capacity: new_measurement.capacity.to_owned(),
-        timestamp: new_measurement.timestamp.to_owned(),
+        timestamp: now,
     };
+    println!("new doc ====== {:?} ", new_doc);
     let measurement_detail = db.insert_data(new_doc);
     match measurement_detail {
-        Ok(user) => Ok(Json(user)),
+        Ok(measurement) => Ok(Json(measurement)),
         Err(_) => Err(Status::InternalServerError),
     }
 }

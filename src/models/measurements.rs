@@ -11,6 +11,12 @@ pub struct Measurements {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct RequestMeasurements {
+    pub sensor_name: String,
+    pub capacity: i32
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 struct preference {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
     id: Option<ObjectId>,
