@@ -38,12 +38,13 @@ pub fn rocket() -> _ {
         .mount(
             "/app",
             routes![
-                routes::measurements::get_all_measurements,
                 routes::measurements::set_measurement,
-                // routes::irrigations::get_last_week_measurements,
-                // routes::irrigations::get_last_day_measurements,
-                // routes::irrigations::get_last_hour_measurements,
-                // routes::irrigations::get_last_minute_measurements,
+                routes::measurements::get_all_measurements,
+                // routes::measurements::get_last_month_measurements,
+                // routes::measurements::get_last_day_measurements,
+                // routes::measurements::get_last_week_measurements,
+                // routes::measurements::get_last_hour_measurements,
+                // routes::measurements::get_last_minute_measurements,
                 // routes::irrigations::set_measurement,
                 // routes::irrigations::get_irrigations,
                 // routes::irrigations::get_sensor_names,

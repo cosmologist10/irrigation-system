@@ -14,7 +14,7 @@ use crate::repository::mongodb::MongoRepo;
 
 // use irrigation::models::measurements;
 
-#[get("/measurement/<sensor_name>")]
+#[get("/all_measurement/<sensor_name>")]
 pub async fn get_all_measurements(
     db: &State<MongoRepo>,
     sensor_name: String
@@ -23,12 +23,93 @@ pub async fn get_all_measurements(
     if sensor.is_empty() {
         return Err(Status::BadRequest);
     };
-    let response = db.get_data(&sensor);
+    let response = db.get_all_measurements(&sensor);
     match response {
         Ok(measurements) => Ok(Json(measurements)),
         Err(_) => Err(Status::InternalServerError),
     }
 }
+
+#[get("/get_last_month_measurements/<sensor_name>")]
+pub async fn get_last_month_measurements(
+    db: &State<MongoRepo>,
+    sensor_name: String
+) -> Result<Json<Measurements>, Status> {
+    let sensor = sensor_name;
+    if sensor.is_empty() {
+        return Err(Status::BadRequest);
+    };
+    let response = db.get_last_month_measurements(&sensor);
+    match response {
+        Ok(measurements) => Ok(Json(measurements)),
+        Err(_) => Err(Status::InternalServerError),
+    }
+}
+
+#[get("/get_last_day_measurements/<sensor_name>")]
+pub async fn get_last_day_measurements(
+    db: &State<MongoRepo>,
+    sensor_name: String
+) -> Result<Json<Measurements>, Status> {
+    let sensor = sensor_name;
+    if sensor.is_empty() {
+        return Err(Status::BadRequest);
+    };
+    let response = db.get_last_day_measurements(&sensor);
+    match response {
+        Ok(measurements) => Ok(Json(measurements)),
+        Err(_) => Err(Status::InternalServerError),
+    }
+}
+
+#[get("/get_last_day_measurements/<sensor_name>")]
+pub async fn get_last_week_measurements(
+    db: &State<MongoRepo>,
+    sensor_name: String
+) -> Result<Json<Measurements>, Status> {
+    let sensor = sensor_name;
+    if sensor.is_empty() {
+        return Err(Status::BadRequest);
+    };
+    let response = db.get_last_week_measurements(&sensor);
+    match response {
+        Ok(measurements) => Ok(Json(measurements)),
+        Err(_) => Err(Status::InternalServerError),
+    }
+}
+
+#[get("/get_last_hour_measurements/<sensor_name>")]
+pub async fn get_last_hour_measurements(
+    db: &State<MongoRepo>,
+    sensor_name: String
+) -> Result<Json<Measurements>, Status> {
+    let sensor = sensor_name;
+    if sensor.is_empty() {
+        return Err(Status::BadRequest);
+    };
+    let response = db.get_last_hour_measurements(&sensor);
+    match response {
+        Ok(measurements) => Ok(Json(measurements)),
+        Err(_) => Err(Status::InternalServerError),
+    }
+}
+
+#[get("/get_last_minute_measurements/<sensor_name>")]
+pub async fn get_last_minute_measurements(
+    db: &State<MongoRepo>,
+    sensor_name: String
+) -> Result<Json<Measurements>, Status> {
+    let sensor = sensor_name;
+    if sensor.is_empty() {
+        return Err(Status::BadRequest);
+    };
+    let response = db.get_last_minute_measurements(&sensor);
+    match response {
+        Ok(measurements) => Ok(Json(measurements)),
+        Err(_) => Err(Status::InternalServerError),
+    }
+}
+
 
 // TODO: Add rate
 #[post("/measurement", data = "<new_measurement>")]

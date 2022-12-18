@@ -1,5 +1,4 @@
 use chrono::Utc;
-use mongodb::bson::oid::ObjectId;
 use serde::{Serialize, Deserialize};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -17,19 +16,10 @@ pub struct RequestMeasurements {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct preference {
-    #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
-    id: Option<ObjectId>,
-    sensor_name: String,
-    irrigation_time_in_seconds: i32,
-    min_irrigation_interval_in_minutes: i32,
-    capacity_buffer: i32,
-    signal_pin: i32
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct sensors {
-    #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
-    id: Option<ObjectId>,
-    sensor_name: String,
+pub struct Preference {
+    pub sensor_name: String,
+    pub irrigation_time_in_seconds: i32,
+    pub min_irrigation_interval_in_minutes: i32,
+    pub capacity_buffer: i32,
+    pub signal_pin: i32
 }
