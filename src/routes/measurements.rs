@@ -62,7 +62,7 @@ pub async fn get_last_day_measurements(
     }
 }
 
-#[get("/get_last_day_measurements/<sensor_name>")]
+#[get("/get_last_week_measurements/<sensor_name>")]
 pub async fn get_last_week_measurements(
     db: &State<MongoRepo>,
     sensor_name: String
