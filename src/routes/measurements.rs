@@ -18,7 +18,7 @@ use crate::repository::mongodb::MongoRepo;
 pub async fn get_all_measurements(
     db: &State<MongoRepo>,
     sensor_name: String
-) -> Result<Json<Measurements>, Status> {
+) -> Result<Json<Vec<Measurements>>, Status> {
     let sensor = sensor_name;
     if sensor.is_empty() {
         return Err(Status::BadRequest);
@@ -34,7 +34,7 @@ pub async fn get_all_measurements(
 pub async fn get_last_month_measurements(
     db: &State<MongoRepo>,
     sensor_name: String
-) -> Result<Json<Measurements>, Status> {
+) -> Result<Json<Vec<Measurements>>, Status> {
     let sensor = sensor_name;
     if sensor.is_empty() {
         return Err(Status::BadRequest);
@@ -50,7 +50,7 @@ pub async fn get_last_month_measurements(
 pub async fn get_last_day_measurements(
     db: &State<MongoRepo>,
     sensor_name: String
-) -> Result<Json<Measurements>, Status> {
+) -> Result<Json<Vec<Measurements>>, Status> {
     let sensor = sensor_name;
     if sensor.is_empty() {
         return Err(Status::BadRequest);
@@ -66,7 +66,7 @@ pub async fn get_last_day_measurements(
 pub async fn get_last_week_measurements(
     db: &State<MongoRepo>,
     sensor_name: String
-) -> Result<Json<Measurements>, Status> {
+) -> Result<Json<Vec<Measurements>>, Status> {
     let sensor = sensor_name;
     if sensor.is_empty() {
         return Err(Status::BadRequest);
@@ -82,7 +82,7 @@ pub async fn get_last_week_measurements(
 pub async fn get_last_hour_measurements(
     db: &State<MongoRepo>,
     sensor_name: String
-) -> Result<Json<Measurements>, Status> {
+) -> Result<Json<Vec<Measurements>>, Status> {
     let sensor = sensor_name;
     if sensor.is_empty() {
         return Err(Status::BadRequest);
@@ -98,7 +98,7 @@ pub async fn get_last_hour_measurements(
 pub async fn get_last_minute_measurements(
     db: &State<MongoRepo>,
     sensor_name: String
-) -> Result<Json<Measurements>, Status> {
+) -> Result<Json<Vec<Measurements>>, Status> {
     let sensor = sensor_name;
     if sensor.is_empty() {
         return Err(Status::BadRequest);

@@ -2,7 +2,8 @@
 use std::{env, any};
 extern crate dotenv;
 use dotenv::dotenv;
-use chrono::{DateTime, Utc, Duration};
+use chrono::{DateTime, Utc, Duration, Timelike};
+
 
 
 use mongodb::{
@@ -10,7 +11,7 @@ use mongodb::{
     bson::{doc},
     results::{ InsertOneResult, UpdateResult},
     sync::{Client, Collection},
-    options::{FindOptions, UpdateOptions},
+    options::{FindOptions, UpdateOptions, IndexOptions},
 };
 use rocket::response;
 
@@ -28,7 +29,6 @@ pub struct MongoRepo {
 
 impl MongoRepo {
 
-    // TODO: should be in async
     pub fn init() -> Self {
         dotenv().ok();
         let uri = match env::var("MONGODB_URI") {
@@ -49,15 +49,32 @@ impl MongoRepo {
             hourly_measurements, irrigation, preferences }
     }
 
-    // TODO: add upsert here as options, Add irrigate if needed code and timestamp issue
+    pub fn change_type(&self, v: u32) -> i64 {
+        i64::from(v) // or v.into()
+    }
+
+    // TODO: can setup expire_after while index creation
     pub fn set_measurement(&self, new_measurement: Measurements) -> Result<UpdateResult, Error> {
-        self.update_hourly_measurement(new_measurement.sensor_name.to_owned(), new_measurement.capacity);
-        self.update_minutely_measurement(new_measurement.sensor_name.to_owned(), new_measurement.capacity);
-        self.update_secondly_measurement(new_measurement.sensor_name.to_owned(), new_measurement.capacity);
+        let mut current_day = new_measurement.timestamp;
+        let hour =  self.change_type(current_day.hour());
+        let minute =  self.change_type(current_day.minute());
+        let second =  self.change_type(current_day.second());
+        let timezone = self.change_type(current_day.timestamp_subsec_nanos());
+
+        current_day =  current_day - Duration::nanoseconds(timezone);
+        self.update_secondly_measurement(new_measurement.sensor_name.to_owned(), new_measurement.capacity, current_day);
+
+        current_day =  current_day - Duration::seconds(second);
+        self.update_hourly_measurement(new_measurement.sensor_name.to_owned(), new_measurement.capacity, current_day);
+    
+        current_day =  current_day - Duration::hours(hour);
+        self.update_minutely_measurement(new_measurement.sensor_name.to_owned(), new_measurement.capacity, current_day);
+        
+        current_day =  current_day - Duration::minutes(minute);
         let updated_daily = self
                 .daily_measurements
                 .update_one(
-                    doc! {"timestamp": new_measurement.timestamp},
+                    doc! {"timestamp": current_day},
                     doc! {
                             "$set":
                             {
@@ -65,7 +82,7 @@ impl MongoRepo {
                                 "capacity": new_measurement.capacity
                             },
                     },
-                    None
+                    Some(UpdateOptions::builder().upsert(true).build()),
                 )
                 .ok()
                 .expect("Error updating daily measurements");
@@ -74,11 +91,11 @@ impl MongoRepo {
     }
 
     // update hourly measurements
-    pub fn update_hourly_measurement(&self, sensor: String, capacity: i32) -> Result<UpdateResult, Error> {
+    pub fn update_hourly_measurement(&self, sensor: String, capacity: i32, timestamp: DateTime<Utc>) -> Result<UpdateResult, Error> {
         let updated_hourly = self
                 .hourly_measurements
                 .update_one(
-                    doc! {"timestamp": Utc::now()},
+                    doc! {"timestamp": timestamp},
                     doc! {
                             "$set":
                             {
@@ -86,7 +103,7 @@ impl MongoRepo {
                                 "capacity": capacity
                             },
                     }, 
-                None,
+                    Some(UpdateOptions::builder().upsert(true).build()),
                 )
                 .ok()
                 .expect("Error updating secondly measurements");
@@ -95,11 +112,11 @@ impl MongoRepo {
     }
 
     // update minutely measurements
-    pub fn update_minutely_measurement(&self, sensor: String, capacity: i32) -> Result<UpdateResult, Error> {
+    pub fn update_minutely_measurement(&self, sensor: String, capacity: i32, timestamp: DateTime<Utc>) -> Result<UpdateResult, Error> {
         let updated_minutely = self
                 .minutely_measurements
                 .update_one(
-                    doc! {"timestamp": Utc::now()},
+                    doc! {"timestamp": timestamp},
                     doc! {
                             "$set":
                             {
@@ -107,7 +124,7 @@ impl MongoRepo {
                                 "capacity": capacity
                             },
                     }, 
-                None,
+                    Some(UpdateOptions::builder().upsert(true).build()),
                 )
                 .ok()
                 .expect("Error updating minutely measurements");
@@ -116,11 +133,11 @@ impl MongoRepo {
     }
 
     // update secondly measurements
-    pub fn update_secondly_measurement(&self, sensor: String, capacity: i32) -> Result<UpdateResult, Error> {
+    pub fn update_secondly_measurement(&self, sensor: String, capacity: i32, timestamp: DateTime<Utc>) -> Result<UpdateResult, Error> {
         let updated_secondly = self
                 .secondly_measurements
                 .update_one(
-                    doc! {"timestamp": Utc::now()},
+                    doc! {"timestamp": timestamp},
                     doc! {
                             "$set":
                             {
@@ -128,7 +145,7 @@ impl MongoRepo {
                                 "capacity": capacity
                             },
                     }, 
-                None,
+                    Some(UpdateOptions::builder().upsert(true).build()),
                 )
                 .ok()
                 .expect("Error updating secondly measurements");
@@ -137,92 +154,133 @@ impl MongoRepo {
     }
     
     // TODO: use find instead of find one
-    pub fn get_all_measurements(&self, sensor: &String) -> Result<Measurements, Error> {
+    pub fn get_all_measurements(&self, sensor: &String) -> Result<Vec<Measurements>, Error> {
         let filter = doc! {"sensor_name": sensor};
         println!("filter: {} {:?}", sensor, filter);
         let sensor_detail = self
             .daily_measurements
-            .find_one(filter, None)
+            .find(filter, None)
             .ok()
             .expect("Error getting sensor's detail");
-        println!("response:{:?}", sensor_detail);
-           
-        Ok(sensor_detail.unwrap())
+
+        let mut response : Vec<Measurements> = Vec::new();
+            
+        for doc in sensor_detail {
+            response.push(doc.unwrap())
+        };
+        
+        Ok(response)
     }
 
     // TODO: use find instead of find one, expire as options and two time difference in filter
-    pub fn get_last_month_measurements(&self, sensor: &String) -> Result<Measurements, Error> {
+    pub fn get_last_month_measurements(&self, sensor: &String) -> Result<Vec<Measurements>, Error> {
         let filter = doc! {
                 "sensor_name": sensor, 
                 "timestamp": Utc::now() - Duration::days(30)
         };
         let sensor_detail = self
             .daily_measurements
-            .find_one(filter, None)
+            .find(filter, None)
             .ok()
             .expect("Error getting sensor's detail");
         println!("response:{:?}", sensor_detail);
-        Ok(sensor_detail.unwrap())
+        
+        let mut response : Vec<Measurements> = Vec::new();
+            
+        for doc in sensor_detail {
+            response.push(doc.unwrap())
+        };
+        
+        Ok(response)
     }
 
     // TODO: use find instead of find one, expire as options and two time difference in filter
-    pub fn get_last_day_measurements(&self, sensor: &String) -> Result<Measurements, Error> {
+    pub fn get_last_day_measurements(&self, sensor: &String) -> Result<Vec<Measurements>, Error> {
         let filter = doc! {
             "sensor_name": sensor, 
-            "timestamp": Utc::now() - Duration::days(1)
+            "timestamp": {
+                "$lte" : Utc::now(),
+                "$gte" : Utc::now() + Duration::days(1),
+            }
+            // Utc::now() - Duration::days(1)
         };
         let sensor_detail = self
             .hourly_measurements
-            .find_one(filter, None)
+            .find(filter, None)
             .ok()
             .expect("Error getting sensor's detail");
-        println!("response:{:?}", sensor_detail);
-        Ok(sensor_detail.unwrap())
+        
+ 
+        let mut response : Vec<Measurements> = Vec::new();
+            
+        for doc in sensor_detail {
+            response.push(doc.unwrap())
+        };
+        
+        Ok(response)
     }
 
     // TODO: use find instead of find one, expire as options and two time difference in filter
-    pub fn get_last_week_measurements(&self, sensor: &String) -> Result<Measurements, Error> {
+    pub fn get_last_week_measurements(&self, sensor: &String) -> Result<Vec<Measurements>, Error> {
         let filter = doc! {
             "sensor_name": sensor, 
             "timestamp": Utc::now() - Duration::weeks(1)
         };
         let sensor_detail = self
             .hourly_measurements
-            .find_one(filter, None)
+            .find(filter, None)
             .ok()
             .expect("Error getting sensor's detail");
-        println!("response:{:?}", sensor_detail);
-        Ok(sensor_detail.unwrap())
+        
+        let mut response : Vec<Measurements> = Vec::new();
+            
+        for doc in sensor_detail {
+            response.push(doc.unwrap())
+        };
+        
+        Ok(response)
     }
 
     // TODO: use find instead of find one, expire as options and two time difference in filter
-    pub fn get_last_hour_measurements(&self, sensor: &String) -> Result<Measurements, Error> {
+    pub fn get_last_hour_measurements(&self, sensor: &String) -> Result<Vec<Measurements>, Error> {
         let filter = doc! {
             "sensor_name": sensor, 
             "timestamp": Utc::now() - Duration::hours(1)
         };
         let sensor_detail = self
             .minutely_measurements
-            .find_one(filter, None)
+            .find(filter, None)
             .ok()
             .expect("Error getting sensor's detail");
-        println!("response:{:?}", sensor_detail);
-        Ok(sensor_detail.unwrap())
+        
+        let mut response : Vec<Measurements> = Vec::new();
+            
+        for doc in sensor_detail {
+            response.push(doc.unwrap())
+        };
+        
+        Ok(response)
     }
 
     // TODO: use find instead of find one, expire as options and two time difference in filter
-    pub fn get_last_minute_measurements(&self, sensor: &String) -> Result<Measurements, Error> {
+    pub fn get_last_minute_measurements(&self, sensor: &String) -> Result<Vec<Measurements>, Error> {
         let filter = doc! {
             "sensor_name": sensor, 
             "timestamp": Utc::now() - Duration::minutes(1)
         };
         let sensor_detail = self
             .secondly_measurements
-            .find_one(filter, None)
+            .find(filter, None)
             .ok()
             .expect("Error getting sensor's detail");
-        println!("response:{:?}", sensor_detail);
-        Ok(sensor_detail.unwrap())
+        
+        let mut response : Vec<Measurements> = Vec::new();
+            
+        for doc in sensor_detail {
+            response.push(doc.unwrap())
+        };
+        
+        Ok(response)
     }
 
     // TODO: Implement find here
