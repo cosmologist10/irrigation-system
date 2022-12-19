@@ -153,7 +153,6 @@ impl MongoRepo {
         Ok(updated_secondly)
     }
     
-    // TODO: use find instead of find one
     pub fn get_all_measurements(&self, sensor: &String) -> Result<Vec<Measurements>, Error> {
         let filter = doc! {"sensor_name": sensor};
         println!("filter: {} {:?}", sensor, filter);
@@ -172,7 +171,6 @@ impl MongoRepo {
         Ok(response)
     }
 
-    // TODO: use find instead of find one, expire as options and two time difference in filter
     pub fn get_last_month_measurements(&self, sensor: &String) -> Result<Vec<Measurements>, Error> {
         let filter = doc! {
                 "sensor_name": sensor, 
@@ -194,15 +192,13 @@ impl MongoRepo {
         Ok(response)
     }
 
-    // TODO: use find instead of find one, expire as options and two time difference in filter
     pub fn get_last_day_measurements(&self, sensor: &String) -> Result<Vec<Measurements>, Error> {
         let filter = doc! {
             "sensor_name": sensor, 
             "timestamp": {
                 "$lte" : Utc::now(),
-                "$gte" : Utc::now() + Duration::days(1),
+                "$gte" : Utc::now() - Duration::days(1),
             }
-            // Utc::now() - Duration::days(1)
         };
         let sensor_detail = self
             .hourly_measurements
@@ -220,11 +216,13 @@ impl MongoRepo {
         Ok(response)
     }
 
-    // TODO: use find instead of find one, expire as options and two time difference in filter
     pub fn get_last_week_measurements(&self, sensor: &String) -> Result<Vec<Measurements>, Error> {
         let filter = doc! {
             "sensor_name": sensor, 
-            "timestamp": Utc::now() - Duration::weeks(1)
+            "timestamp": {
+                "$lte" : Utc::now(),
+                "$gte" : Utc::now() - Duration::weeks(1)
+            }
         };
         let sensor_detail = self
             .hourly_measurements
@@ -241,11 +239,13 @@ impl MongoRepo {
         Ok(response)
     }
 
-    // TODO: use find instead of find one, expire as options and two time difference in filter
     pub fn get_last_hour_measurements(&self, sensor: &String) -> Result<Vec<Measurements>, Error> {
         let filter = doc! {
             "sensor_name": sensor, 
-            "timestamp": Utc::now() - Duration::hours(1)
+            "timestamp": {
+                "$lte" : Utc::now(),
+                "$gte" : Utc::now() - Duration::hours(1)
+            }
         };
         let sensor_detail = self
             .minutely_measurements
@@ -262,11 +262,13 @@ impl MongoRepo {
         Ok(response)
     }
 
-    // TODO: use find instead of find one, expire as options and two time difference in filter
     pub fn get_last_minute_measurements(&self, sensor: &String) -> Result<Vec<Measurements>, Error> {
         let filter = doc! {
             "sensor_name": sensor, 
-            "timestamp": Utc::now() - Duration::minutes(1)
+            "timestamp": {
+                "$lte" : Utc::now(),
+                "$gte" : Utc::now() - Duration::minutes(1)
+            }
         };
         let sensor_detail = self
             .secondly_measurements
