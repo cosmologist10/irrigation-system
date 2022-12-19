@@ -23,3 +23,8 @@ pub struct Preference {
     pub capacity_buffer: i32,
     pub signal_pin: i32
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Sensors{
+    pub sensor_name: String,
+}

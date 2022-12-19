@@ -3,6 +3,7 @@ use std::{env, any};
 extern crate dotenv;
 use dotenv::dotenv;
 use chrono::{DateTime, Utc, Duration, Timelike};
+use rocket::serde::json::{json, Json, Value};
 
 
 
@@ -11,11 +12,12 @@ use mongodb::{
     bson::{doc},
     results::{ InsertOneResult, UpdateResult},
     sync::{Client, Collection},
-    options::{FindOptions, UpdateOptions, IndexOptions},
+    options::{FindOneAndUpdateOptions, UpdateOptions, ReturnDocument::{After}},
 };
+
 use rocket::response;
 
-use crate::models::measurements::{Measurements, Preference};
+use crate::models::measurements::{Measurements, Preference, Sensors};
 
 
 pub struct MongoRepo {
@@ -88,9 +90,10 @@ impl MongoRepo {
                 .expect("Error updating daily measurements");
     
         Ok(updated_daily)
+
     }
 
-    // update hourly measurements
+
     pub fn update_hourly_measurement(&self, sensor: String, capacity: i32, timestamp: DateTime<Utc>) -> Result<UpdateResult, Error> {
         let updated_hourly = self
                 .hourly_measurements
@@ -111,7 +114,7 @@ impl MongoRepo {
         Ok(updated_hourly)
     }
 
-    // update minutely measurements
+
     pub fn update_minutely_measurement(&self, sensor: String, capacity: i32, timestamp: DateTime<Utc>) -> Result<UpdateResult, Error> {
         let updated_minutely = self
                 .minutely_measurements
@@ -132,7 +135,7 @@ impl MongoRepo {
         Ok(updated_minutely)
     }
 
-    // update secondly measurements
+
     pub fn update_secondly_measurement(&self, sensor: String, capacity: i32, timestamp: DateTime<Utc>) -> Result<UpdateResult, Error> {
         let updated_secondly = self
                 .secondly_measurements
@@ -153,6 +156,42 @@ impl MongoRepo {
         Ok(updated_secondly)
     }
     
+    pub fn irrigateIfNeeded(&self, sensor: String , capacity: i32) -> bool {
+        let preferences = self.get_preference(sensor.to_owned());
+
+        let isBufferPassed = self.isLastIrrigationTimeBufferPassed(preferences.unwrap(), sensor.to_owned());
+        self.irrigate(sensor.to_owned());
+        self.irrigation(sensor.to_owned());
+
+        return true;
+    }
+
+    pub fn isLastIrrigationTimeBufferPassed(&self, preferences: Preference, sensor: String) -> bool {
+        let last_irrigation = self.get_last_irrigation(sensor.to_owned());
+
+    //     const now = new Date().getTime()
+    // if (lastMeasurement) {
+    //     let lastMeasurementTime = lastMeasurement.timestamp
+    //     lastMeasurementTimePlusBuffer = lastMeasurementTime.setMinutes(lastMeasurementTime.getMinutes() + preferences.minIrrigationIntervalInMinutes)
+    //     return now > lastMeasurementTimePlusBuffer
+    // } else return true
+
+        return true;
+    }
+
+
+    pub fn get_last_irrigation(&self, sensor: String) -> Result<Measurements, Error> {
+        let last_irrigation = self
+            .irrigation
+            .find_one(
+                doc! {"sensor_name": sensor.to_owned()},
+                None)
+            .ok()
+            .expect("Error getting irrigations detail");
+
+        Ok(last_irrigation.unwrap())
+    }
+
     pub fn get_all_measurements(&self, sensor: &String) -> Result<Vec<Measurements>, Error> {
         let filter = doc! {"sensor_name": sensor};
         println!("filter: {} {:?}", sensor, filter);
@@ -285,81 +324,132 @@ impl MongoRepo {
         Ok(response)
     }
 
-    // TODO: Implement find here
-    pub fn get_irrigations(&self, sensor: &String) -> Result<Measurements, Error> {
+    pub fn get_irrigations(&self, sensor: &String) -> Result<Vec<Measurements>, Error> {
         let filter = doc! {
             "sensor_name": sensor, 
         };
         let irrigation_detail = self
             .irrigation
-            .find_one(filter, None)
+            .find(filter, None)
             .ok()
             .expect("Error getting irrigations detail");
-        println!("response:{:?}", irrigation_detail);
-        Ok(irrigation_detail.unwrap())
+
+            let mut response : Vec<Measurements> = Vec::new();
+            
+            for doc in irrigation_detail {
+                response.push(doc.unwrap())
+            };
+            
+            Ok(response)
     }
 
 
-    // // TODO: Implement find here
-    // pub fn get_sensor_names(&self) -> Result<Preference, Error>{
-    //     let preference = self
-    //         .preferences
-    //         .find_one({}, None)
-    //         .ok()
-    //         .expect("Error updating daily measurements");
-    //     Ok(preference.unwrap())
-    // }
+    pub fn get_sensor_names(&self) -> Result<Vec<String>, Error>{
+        
+        let preferences = self
+            .preferences
+            .find(None, None)
+            .ok()
+            .expect("Error getting sensor names");
+
+        let mut response : Vec<String> = Vec::new();
+            
+        for doc in preferences {
+            response.push(doc.unwrap().sensor_name)
+        };
+            
+        Ok(response)
+    }
 
 
-    // pub fn irrigation(&self, sensor: &String) -> any{
-    //     let preferences = self.get_preference(sensor);
-    //     let sensor_result = self.irrigate(irrigation_time_in_seconds, sensor);
-    //     if(sensor_result){
-    //         self.set_irrigation();
-    //     }
-    // }
+    pub fn irrigation(&self, sensor: String) -> Result<InsertOneResult, Error> {
+        
+        let sensor_result = self.irrigate(sensor.to_owned());
 
-    // // get preference
-    // // TODO: pass options
-    // pub fn get_preference(&self, sensor: &String) -> Result<Preference, Error>{
-    //     let preference = self
-    //         .preferences
-    //         .find_one_and_update(
-    //             doc! {"sensor_name": sensor},
-    //             doc! {
-    //                 "$set":
-    //                 {
-    //                     "irrigation_time_in_seconds": 15,
-    //                     "min_irrigation_interval_in_minutes": 10,
-    //                     "capacity_buffer": 500,
-    //                     "signal_pin": 18
-    //                 },
-    //             }, 
-    //          None,
-    //         )
-    //         .ok()
-    //         .expect("Error updating daily measurements");
-    //         Ok(preference.unwrap())
-    // }
+        let document = Measurements{
+            sensor_name: sensor.to_owned(),
+            capacity: 10,
+            timestamp: Utc::now(),
+        };
 
-    // // update preference
-    // // TODO: pass options
-    // pub fn update_preference(&self, preferences: Preference) -> Result<Preference, Error> {
+        let inserted_result = self
+            .irrigation
+            .insert_one(
+                document,
+                None)
+            .ok()
+            .expect("Error getting irrigations detail");
 
-    //     let preference = self
-    //         .preferences
-    //         .find_one_and_update(
-    //             doc! {"sensor_name": preferences.sensor_name.to_owned()},
-    //             doc! {
-    //                 "$set":
-    //                 preferences,
-    //             }, 
-    //          None,
-    //         )
-    //         .ok()
-    //         .expect("Error updating daily measurements");
-    //         Ok(preference.unwrap())
-    // }
+            
+        Ok(inserted_result)
+    }
+
+    // TODO: Implement raspberry pi library code
+    pub fn irrigate(&self, sensor: String) -> String{
+        let preferences = self.get_preference(sensor.to_owned());
+        
+        println!("Start Irrigation");
+
+        // rpio.open(preferences.unwrap().signal_pin, rpio.OUTPUT, rpio.LOW);
+        // rpio.write(preferences.unwrap().signal_pin, rpio.HIGH);
+        // rpio.sleep(preferences.unwrap().irrigation_time_in_seconds);
+        // rpio.write(preferences.unwrap().signal_pin, rpio.LOW);
+        // rpio.close(preferences.unwrap().signal_pin);
+        return "success".to_owned();
+    }
+
+
+    pub fn update_preference(&self, preferences: Json<Preference>) -> Result<Preference, Error> {
+        let preference = self
+            .preferences
+            .find_one_and_update(
+                doc! {"sensor_name": preferences.sensor_name.to_owned()},
+                doc! {
+                    "$set":
+                    {
+                        "irrigation_time_in_seconds": preferences.irrigation_time_in_seconds,
+                        "min_irrigation_interval_in_minutes": preferences.min_irrigation_interval_in_minutes,
+                        "capacity_buffer": preferences.capacity_buffer,
+                        "signal_pin": preferences.signal_pin,
+                        "sensor_name": preferences.sensor_name.to_owned()
+                    },
+                }, 
+                Some(FindOneAndUpdateOptions::builder()
+                .upsert(true)
+                .return_document(After)
+                .build()),
+            )
+            .ok()
+            .expect("Error updating daily measurements");
+            Ok(preference.unwrap())
+    }
+
+
+    pub fn get_preference(&self, sensor: String) -> Result<Preference, Error>{
+        let preference = self
+            .preferences
+            .find_one_and_update(
+                doc! {"sensor_name": sensor.to_owned()},
+                doc! {
+                    "$set":
+                    {
+                        "irrigation_time_in_seconds": 15,
+                        "min_irrigation_interval_in_minutes": 10,
+                        "capacity_buffer": 500,
+                        "signal_pin": 18,
+                        "sensor_name": sensor.to_owned()
+                    },
+                }, 
+                Some(FindOneAndUpdateOptions::builder()
+                .upsert(true)
+                .return_document(After)
+                .build()),
+            )
+            .ok()
+            .expect("Error finding and updating preferences");
+
+        Ok(preference.unwrap())
+    }
+
+
 }
-
-

@@ -46,12 +46,10 @@ pub fn rocket() -> _ {
                 routes::measurements::get_last_hour_measurements,
                 routes::measurements::get_last_minute_measurements,
                 routes::measurements::get_irrigations,
-
-                // routes::irrigations::set_measurement,
-                // routes::irrigations::get_sensor_names,
-                // routes::irrigations::irrigation,
-                // routes::irrigations::get_preference,
-                // routes::irrigations::update_preferences,
+                routes::measurements::get_preference,
+                routes::measurements::update_preference,
+                routes::measurements::get_sensors,
+                routes::measurements::irrigation,
             ],
         )
         // .attach(database::Db::fairing())

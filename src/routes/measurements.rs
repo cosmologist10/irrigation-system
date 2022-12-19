@@ -9,7 +9,7 @@ use chrono::{DateTime, Utc, Duration};
 use mongodb::results::{InsertOneResult, UpdateResult};
 
 
-use crate::models::measurements::{Measurements, RequestMeasurements};
+use crate::models::measurements::{Measurements, RequestMeasurements, Preference};
 use crate::repository::mongodb::MongoRepo;
 
 // use irrigation::models::measurements;
@@ -111,7 +111,7 @@ pub async fn get_last_minute_measurements(
 }
 
 
-// TODO: Add rate
+// TODO: Add rate limiter
 #[post("/measurement", data = "<new_measurement>")]
 pub fn set_measurement(
     db: &State<MongoRepo>,
@@ -132,11 +132,11 @@ pub fn set_measurement(
 }
 
 
-#[get("/get_irrigations/<sensor_name>")]
+#[get("/irrigations/<sensor_name>")]
 pub fn get_irrigations(
     db: &State<MongoRepo>,
     sensor_name: String
-) -> Result<Json<Measurements>, Status> {
+) -> Result<Json<Vec<Measurements>>, Status> {
     let sensor = sensor_name;
     if sensor.is_empty() {
         return Err(Status::BadRequest);
@@ -148,29 +148,68 @@ pub fn get_irrigations(
     }
 }
 
+#[get("/sensors")]
+pub fn get_sensors(
+    db: &State<MongoRepo>,
+) -> Result<Json<Vec<String>>, Status> {
+    
+    let response = db.get_sensor_names();
+    
+    match response {
+        Ok(preferences) => Ok(Json(preferences)),
+        Err(_) => Err(Status::InternalServerError),
+    }
+}
 
+#[get("/sensors/irrigation/<sensor_name>")]
+pub fn irrigation(
+    db: &State<MongoRepo>,
+    sensor_name: String
+) -> Result<Json<InsertOneResult>, Status> {
 
-// #[get("/<sensorName>")]
-// fn getPreference() -> &'static str {
-//     "Hello, world!"
-// }
+    let sensor = sensor_name;
+    if sensor.is_empty() {
+        return Err(Status::BadRequest);
+    };
+    
+    let response = db.irrigation(sensor);
+    
+    match response {
+        Ok(id) => Ok(Json(id)),
+        Err(_) => Err(Status::InternalServerError),
+    }
+}
 
-// #[put("/<sensorName>")]
-// fn updatePreferences() -> &'static str {
-//     "Hello, world!"
-// }
+#[get("/preferences/<sensor_name>")]
+pub fn get_preference(
+    db: &State<MongoRepo>,
+    sensor_name: String
+) -> Result<Json<Preference>, Status> {
+    let sensor = sensor_name;
+    if sensor.is_empty() {
+        return Err(Status::BadRequest);
+    };
+    let response = db.get_preference(sensor);
+    match response {
+        Ok(preferences) => Ok(Json(preferences)),
+        Err(_) => Err(Status::InternalServerError),
+    }
+}
 
-
-
-// #[get("/")]
-// fn getSensorNames() -> &'static str {
-//     "Hello, world!"
-// }
-
-// #[get("/irrigation/<sensorName>")]
-// fn irrigation() -> &'static str {
-//     "Hello, world!"
-// }
-
-
+#[put("/preferences/<sensor_name>", format = "json", data = "<preference>")]
+pub fn update_preference(
+    db: &State<MongoRepo>,
+    sensor_name: String,
+    preference: Json<Preference>,
+) -> Result<Json<Preference>, Status> {
+    let sensor = sensor_name;
+    if sensor.is_empty() {
+        return Err(Status::BadRequest);
+    };
+    let response = db.update_preference(preference);
+    match response {
+        Ok(preferences) => Ok(Json(preferences)),
+        Err(_) => Err(Status::InternalServerError),
+    }
+}
 
