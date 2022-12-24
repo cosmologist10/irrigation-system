@@ -1,9 +1,14 @@
 import React, { useCallback } from "react";
 import { GiWateringCan as IrrigationIcon } from "react-icons/gi";
+import { BASE_URL } from "../../../constants/url";
 
 function ManualOverride(): JSX.Element {
   const onSubmit = useCallback(() => {
-    console.log("Override Requested");
+   fetch(`${BASE_URL}/app/sensors/irrigation/plant_1`)
+      .then(() => console.log("start irrigation request sent"))
+      .catch((error) => {
+        console.error(error);
+      });
   }, []);
 
   return (

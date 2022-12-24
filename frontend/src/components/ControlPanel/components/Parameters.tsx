@@ -1,4 +1,5 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
+import { BASE_URL } from "../../../constants/url";
 
 const DEFAULT_VALUES = {
   irrigationTime: 5,
@@ -26,6 +27,26 @@ function Parameters(): JSX.Element {
     `${DEFAULT_VALUES.capacityBuffer}`
   );
   const [signalPin, setSignalPin] = useState(`${DEFAULT_VALUES.signalPin}`);
+
+  useEffect(() => {
+    fetch(`${BASE_URL}/app/preferences/plant_1`)
+      .then((response) => {
+        console.log("preference response >> ", response);
+
+        return response.json();
+      })
+      .then((data) => {
+        console.log("preference data >> ", data);
+
+        setIrrigationTime(`${data.irrigationTime}`);
+        setMinimumIrrigationInterval(`${data.minimumIrrigationInterval}`);
+        setCapacityBuffer(`${data.capacityBuffer}`);
+        setSignalPin(`${data.signalPin}`);
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+  });
 
   const onSubmit = useCallback(() => {
     const params = {
@@ -55,7 +76,19 @@ function Parameters(): JSX.Element {
       params.signalPin = DEFAULT_VALUES.signalPin;
     }
 
-    console.log(params);
+    const requestOptions = {
+      method: "PUT",
+      body: JSON.stringify({
+        sensor_name: "plant_1",
+        irrigation_time_in_seconds: params.irrigationTime,
+        min_irrigation_interval_in_minutes: params.minimumIrrigationInterval,
+        capacity_buffer: params.capacityBuffer,
+        signal_pin: params.signalPin,
+      }),
+    };
+    fetch(`${BASE_URL}/app/preferences/plant_1`, requestOptions)
+      .then(() => console.log("parameters updated"))
+      .catch((error) => console.error(error));
   }, [irrigationTime, minimumIrrigationInterval, capacityBuffer, signalPin]);
 
   return (
