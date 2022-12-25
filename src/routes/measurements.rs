@@ -196,7 +196,7 @@ pub fn get_preference(
     }
 }
 
-#[put("/preferences/<sensor_name>", format = "json", data = "<preference>")]
+#[post("/preferences/<sensor_name>", data = "<preference>")]
 pub fn update_preference(
     db: &State<MongoRepo>,
     sensor_name: String,

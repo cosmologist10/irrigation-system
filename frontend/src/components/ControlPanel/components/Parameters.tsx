@@ -38,15 +38,15 @@ function Parameters(): JSX.Element {
       .then((data) => {
         console.log("preference data >> ", data);
 
-        setIrrigationTime(`${data.irrigationTime}`);
-        setMinimumIrrigationInterval(`${data.minimumIrrigationInterval}`);
-        setCapacityBuffer(`${data.capacityBuffer}`);
-        setSignalPin(`${data.signalPin}`);
+        setIrrigationTime(`${data.irrigation_time_in_seconds}`);
+        setMinimumIrrigationInterval(`${data.min_irrigation_interval_in_minutes}`);
+        setCapacityBuffer(`${data.capacity_buffer}`);
+        setSignalPin(`${data.signal_pin}`);
       })
       .catch((error) => {
         console.error(error);
       });
-  });
+  }, []);
 
   const onSubmit = useCallback(() => {
     const params = {
@@ -77,7 +77,7 @@ function Parameters(): JSX.Element {
     }
 
     const requestOptions = {
-      method: "PUT",
+      method: "POST",
       body: JSON.stringify({
         sensor_name: "plant_1",
         irrigation_time_in_seconds: params.irrigationTime,
@@ -85,7 +85,9 @@ function Parameters(): JSX.Element {
         capacity_buffer: params.capacityBuffer,
         signal_pin: params.signalPin,
       }),
+      'Content-Type': 'application/json'
     };
+    console.log('');
     fetch(`${BASE_URL}/app/preferences/plant_1`, requestOptions)
       .then(() => console.log("parameters updated"))
       .catch((error) => console.error(error));
